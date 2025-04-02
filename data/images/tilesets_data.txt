@@ -1,0 +1,5 @@
+#folder_name,tileset_name,width,height,spacing
+platform_tilesets green_platform 16 16 0
+platform_tilesets green_platform_corner 16 16 0
+platform_tilesets floor 32 32 0
+platform_tilesets starting_tile 32 32 0
