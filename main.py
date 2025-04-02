@@ -3,9 +3,10 @@ from pygame.locals import *
 
 from data.scripts.font import Font
 from data.scripts.clock import Clock
-from data.scripts.tileset_loader import TileSetManager
 from data.scripts.editor_manager import EditorManager
 from data.scripts.image_functions import load_image, scale_image_size
+from data.scripts.player import Player
+
 
 class GameWindow:
     def __init__(self):
@@ -30,23 +31,41 @@ class GameWindow:
         # Clock---------------------#
         self.clock = Clock()
 
-        self.tileset_manager = TileSetManager()
         self.editor_manager = EditorManager()
         self.mini_map_manager = EditorManager()
-        self.editor_manager.load_map(self.tileset_manager.tileset_data)
-        self.mini_map_manager.load_map(self.tileset_manager.tileset_data)
+
+        self.editor_manager.load_map()
+        self.mini_map_manager.load_map()
+
+        self.player = Player(*self.editor_manager.starting_point, 5)
+
+        self.true_scroll = [0, 0]
+        self.scroll = [0, 0]
 
         self.game = True
+
+    def scroll_back(self, obj, delta_time):
+        x = self.main_display_size[0] // 2
+        y = self.main_display_size[1] // 2
+        self.true_scroll[0] += ((obj.x - self.true_scroll[0] - x) / 10) * delta_time
+        self.true_scroll[1] += ((obj.y - self.true_scroll[1] - y) / 10) * delta_time
 
     def main_loop(self):
         while self.game:
             mouse_pos = pygame.mouse.get_pos()
+            mouse_pos = [mouse_pos[0] // self.ratio, mouse_pos[1] // self.ratio]
+
+            self.scroll_back(self.player, 1)
+            self.scroll = self.true_scroll.copy()
+            self.scroll[0] = int(self.scroll[0])
+            self.scroll[1] = int(self.scroll[1])
 
             self.screen.fill((0, 0, 0))
             self.main_display.fill((0, 0, 0))
             self.mini_map_display.fill((0, 0, 0))
 
             self.editor_manager.show_map(self.main_display)
+            self.editor_manager.apply_offset(self.scroll)
 
             self.mini_map_manager.change_offset(self.tile_size[0])
             self.mini_map_manager.show_map(self.mini_map_display)
@@ -56,28 +75,31 @@ class GameWindow:
                     self.game = False
 
                 if event.type == pygame.KEYDOWN:
-                    if event.key == K_a:
+                    if event.key == K_a or event.key == K_LEFT:
                         self.mini_map_manager.shift_x = "right"
-                    if event.key == K_f:
+                    if event.key == K_d or event.key == K_RIGHT:
                         self.mini_map_manager.shift_x = "left"
-                    if event.key == K_e:
+                    if event.key == K_w or event.key == K_UP:
                         self.mini_map_manager.shift_y = "top"
-                    if event.key == K_d:
+                    if event.key == K_s or event.key == K_DOWN:
                         self.mini_map_manager.shift_y = "bottom"
+                    # if event.type == pygame.KEYDOWN and event.key == K_f:
+                    #     pygame.display.toggle_fullscreen()
 
                 if event.type == pygame.KEYUP:
-                    if event.key == K_a:
+                    if event.key == K_a or event.key == K_LEFT:
                         self.mini_map_manager.shift_x = None
-                    if event.key == K_f:
+                    if event.key == K_d or event.key == K_RIGHT:
                         self.mini_map_manager.shift_x = None
-                    if event.key == K_e:
+                    if event.key == K_w or event.key == K_UP:
                         self.mini_map_manager.shift_y = None
-                    if event.key == K_d:
+                    if event.key == K_s or event.key == K_DOWN:
                         self.mini_map_manager.shift_y = None
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # left click
-                        pass
+                        self.player.clicked = True
+                        print(self.true_scroll)
                     if event.button == 2:  # mouse wheel click
                         pass
                     if event.button == 3:  # right click
@@ -88,7 +110,11 @@ class GameWindow:
                         pass
 
                 if event.type == pygame.MOUSEBUTTONUP:
-                    pass
+                    if event.button == 1:
+                        self.player.clicked = False
+
+            self.player.display(self.main_display, mouse_pos)
+            self.player.change_offset(self.scroll)
 
             pygame.draw.rect(self.mini_map_display, (255, 255, 255), (0, 0, *self.mini_map_size), 10)
             self.screen.blit(scale_image_size(self.main_display, *self.screen_size), (0, 0))
