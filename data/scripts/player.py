@@ -1,6 +1,7 @@
 import pygame
 import math
 
+from data.scripts.collision_detection import CollisionCheck, collision_test
 
 class Player:
     def __init__(self, x, y, radius):
@@ -11,7 +12,8 @@ class Player:
         self.color = (255, 255, 255)
         self.angle = 0
         self.distance = 0
-        self.rect = pygame.Rect(self.x, self.y, self.radius, self.radius)
+        self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+        # self.phy_obj = CollisionCheck(self.x, self.y, self.x_size - 5, self.y_size)
         self.power = 0
         self.released = False
         self.deacceraltion = 1
@@ -19,14 +21,18 @@ class Player:
         self.time_elapsed = 0
 
     def set_pos(self):
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect.x = self.x - self.radius
+        self.rect.y = self.y - self.radius
 
     def change_offset(self, offset):
         self.x -= offset[0]
         self.y -= offset[1]
 
-    def release_player(self):
+        self.set_pos()
+
+    def release_player(self, display, platforms, offset):
+        # movement = [0, 0]
+
         if self.released:
             self.angle = self.angle
             time = pygame.time.get_ticks()
@@ -38,9 +44,18 @@ class Player:
             self.released = False if power == 0 else True
 
             coors = self.find_coordinates(power, math.radians(self.angle))
+            # movement = [coors[0], coors[1]]
+
+
+            for platform in platforms:
+                pygame.draw.rect(display, (255, 255, 0), (platform.x, platform.y, platform.width, platform.height))
+                if self.rect.colliderect(platform):
+                    self.released = False
+                    self.power = 0
 
             self.x += coors[0]
             self.y += coors[1]
+
 
     def get_distance(self, mouse_pos, pos):
         y = (mouse_pos[1] - pos[1]) ** 2
@@ -67,13 +82,14 @@ class Player:
         pygame.draw.line(display, (255, 0, 0), (self.x, self.y), (self.x - coor[0], self.y - coor[1]), 3)
         pygame.draw.line(display, (255, 0, 0), (self.x, self.y), (self.x + coor[0] // 2, self.y + coor[1] // 2))
 
-    def display(self, display, mouse_pos):
+    def display(self, display, mouse_pos, platforms, offset):
         pygame.draw.circle(display, self.color, (self.x, self.y), self.radius)
         pygame.draw.circle(display, (self.color[0] - 50, self.color[0] - 50, self.color[0] - 50), (self.x, self.y),
                            self.radius - 1)
         pygame.draw.circle(display, (self.color[0] - 100, self.color[0] - 100, self.color[0] - 100), (self.x, self.y),
                            self.radius - 3)
 
+        pygame.draw.rect(display, (0, 0, 0), self.rect)
         if self.clicked and not self.released:
             x = mouse_pos[0] - self.x
             y = mouse_pos[1] - self.y
@@ -86,4 +102,4 @@ class Player:
 
             self.draw_line(display, coors)
 
-        self.release_player()
+        self.release_player(display, platforms, offset)

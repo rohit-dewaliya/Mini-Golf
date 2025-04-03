@@ -21,8 +21,8 @@ class EditorManager:
         self.set_layers()
         self.starting_point = []
         self.ending_data = []
-        self.collision_tiles = ["green_platform"]
-        self.non_collision_tiles = []
+        self.collision_tiles = ["green_platform", "green_platform_corner"]
+        self.non_collision_tiles = ["floor"]
 
     def set_layers(self):
         for layer in self.editor_layers:
@@ -64,10 +64,20 @@ class EditorManager:
                                                                        pos[1] + self.offset_y])]
 
     def show_map(self, display):
+        self.collision_data = []
+
         for layer in self.editor_map:
             layer_data = self.editor_map[layer]
             for tile in layer_data:
+                # print(tile)
+                widht = layer_data[tile][1].get_width()
+                height = layer_data[tile][1].get_height()
                 display.blit(layer_data[tile][1], (tile[0] + self.offset_x, tile[1] + self.offset_y))
+                if layer_data[tile][0] in self.collision_tiles:
+                    self.collision_data.append(pygame.Rect(tile[0] + self.offset_x, tile[1] + self.offset_y, widht, height))
+
+        for platform in self.collision_data:
+            pygame.draw.rect(display, (255, 0, 0), ((platform.x, platform.y, platform.width, platform.height)))
 
     def save_map(self, tileset_data):
         for layer in self.editor_map:

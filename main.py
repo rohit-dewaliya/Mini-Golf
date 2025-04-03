@@ -71,6 +71,19 @@ class GameWindow:
             self.mini_map_manager.change_offset(self.tile_size[0])
             self.mini_map_manager.show_map(self.mini_map_display)
 
+            # collision_type = check_collision_type(self.player, self.editor_manager.collision_data)
+            # if collision_type['left']:
+            #     print('left')
+            # elif collision_type['right']:
+            #     print('right')
+            # elif collision_type['top']:
+            #     print('top')
+            # elif collision_type['bottom']:
+            #     print('bottom')
+
+            # self.player.rect, self.collision_list = self.player.phy_obj.move([self.player.x, self.player.y],
+            #                                                                   self.editor_manager.collision_data, [])
+
             for event in pygame.event.get():
                 if event.type == QUIT:
                     self.game = False
@@ -118,8 +131,7 @@ class GameWindow:
                         self.player.clicked = False
                         self.player.release_time = pygame.time.get_ticks()
 
-
-            self.player.display(self.main_display, mouse_pos)
+            self.player.display(self.main_display, mouse_pos, self.editor_manager.collision_data, self.scroll)
             self.player.change_offset(self.scroll)
 
             pygame.draw.rect(self.mini_map_display, (255, 255, 255), (0, 0, *self.mini_map_size), 10)
