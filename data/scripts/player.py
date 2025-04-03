@@ -12,6 +12,11 @@ class Player:
         self.angle = 0
         self.distance = 0
         self.rect = pygame.Rect(self.x, self.y, self.radius, self.radius)
+        self.power = 0
+        self.released = False
+        self.deacceraltion = 1
+        self.release_time = 0
+        self.time_elapsed = 0
 
     def set_pos(self):
         self.rect.x = self.x
@@ -20,6 +25,22 @@ class Player:
     def change_offset(self, offset):
         self.x -= offset[0]
         self.y -= offset[1]
+
+    def release_player(self):
+        if self.released:
+            self.angle = self.angle
+            time = pygame.time.get_ticks()
+
+            self.time_elapsed = (time - self.release_time) // 300
+
+            power = max(0, self.power - self.time_elapsed)
+
+            self.released = False if power == 0 else True
+
+            coors = self.find_coordinates(power, math.radians(self.angle))
+
+            self.x += coors[0]
+            self.y += coors[1]
 
     def get_distance(self, mouse_pos, pos):
         y = (mouse_pos[1] - pos[1]) ** 2
@@ -30,6 +51,8 @@ class Player:
 
         if distance > 80:
             distance = 80
+
+        self.power = distance // 10
 
         return distance
 
@@ -46,7 +69,12 @@ class Player:
 
     def display(self, display, mouse_pos):
         pygame.draw.circle(display, self.color, (self.x, self.y), self.radius)
-        if self.clicked:
+        pygame.draw.circle(display, (self.color[0] - 50, self.color[0] - 50, self.color[0] - 50), (self.x, self.y),
+                           self.radius - 1)
+        pygame.draw.circle(display, (self.color[0] - 100, self.color[0] - 100, self.color[0] - 100), (self.x, self.y),
+                           self.radius - 3)
+
+        if self.clicked and not self.released:
             x = mouse_pos[0] - self.x
             y = mouse_pos[1] - self.y
             angle = math.atan2(y, x)
@@ -57,3 +85,5 @@ class Player:
             coors = self.find_coordinates(self.distance, math.radians(self.angle))
 
             self.draw_line(display, coors)
+
+        self.release_player()

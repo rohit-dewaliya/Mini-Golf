@@ -31,6 +31,7 @@ class GameWindow:
         # Clock---------------------#
         self.clock = Clock()
 
+        # Variables-----------------------#
         self.editor_manager = EditorManager()
         self.mini_map_manager = EditorManager()
 
@@ -61,7 +62,7 @@ class GameWindow:
             self.scroll[1] = int(self.scroll[1])
 
             self.screen.fill((0, 0, 0))
-            self.main_display.fill((0, 0, 0))
+            self.main_display.fill((110, 170, 130))
             self.mini_map_display.fill((0, 0, 0))
 
             self.editor_manager.show_map(self.main_display)
@@ -99,7 +100,6 @@ class GameWindow:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:  # left click
                         self.player.clicked = True
-                        print(self.true_scroll)
                     if event.button == 2:  # mouse wheel click
                         pass
                     if event.button == 3:  # right click
@@ -111,7 +111,13 @@ class GameWindow:
 
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
+                        if self.player.distance <= 10:
+                            self.player.released = False
+                        else:
+                            self.player.released = True if not self.player.released else False
                         self.player.clicked = False
+                        self.player.release_time = pygame.time.get_ticks()
+
 
             self.player.display(self.main_display, mouse_pos)
             self.player.change_offset(self.scroll)
