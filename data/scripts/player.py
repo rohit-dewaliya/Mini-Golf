@@ -3,6 +3,7 @@ import math
 
 from data.scripts.collision_detection import CollisionCheck, collision_test
 
+
 class Player:
     def __init__(self, x, y, radius):
         self.x = x
@@ -13,13 +14,14 @@ class Player:
         self.angle = 0
         self.distance = 0
         self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
-        # self.phy_obj = CollisionCheck(self.x, self.y, self.x_size - 5, self.y_size)
+        self.phy_obj = CollisionCheck(self.x, self.y, self.radius * 2, self.radius * 2)
         self.power = 0
         self.released = False
         self.deacceraltion = 1
         self.release_time = 0
         self.time_elapsed = 0
         self.collided = False
+        self.collision_direction = None
 
     def set_pos(self):
         self.rect.x = self.x - self.radius
@@ -32,37 +34,89 @@ class Player:
         self.set_pos()
 
     def release_player(self, display, platforms, offset):
-        # movement = [0, 0]
+        if not self.released:
+            return
 
-        if self.released:
-            self.angle = self.angle
-            time = pygame.time.get_ticks()
+        # Get time elapsed since release
+        time = pygame.time.get_ticks()
+        self.time_elapsed = (time - self.release_time) // 300
 
-            self.time_elapsed = (time - self.release_time) // 300
+        # Calculate current power with deceleration
+        power = max(0, self.power - self.time_elapsed)
 
-            power = max(0, self.power - self.time_elapsed)
+        # Stop if power is too low
+        if power < 2:
+            self.released = False
+            self.collision_direction = None
+            return
 
-            self.released = False if power == 0 else True
+        # Calculate movement vector
+        coors = self.find_coordinates(power, math.radians(self.angle))
 
-            coors = self.find_coordinates(power, math.radians(self.angle))
-            # movement = [coors[0], coors[1]]
+        # Apply bounce from previous collision if any
+        if self.collision_direction:
+            if self.collision_direction in ['left', 'right']:
+                coors[0] = -coors[0] * 0.8
+            elif self.collision_direction in ['top', 'bottom']:
+                coors[1] = -coors[1] * 0.8
+            # Reset collision direction after applying it
+            self.collision_direction = None
 
-            self.rect.x += coors[0]
-            self.rect.y += coors[1]
+        # Move the ball
+        new_x = self.x + coors[0]
+        new_y = self.y + coors[1]
 
-            for platform in platforms:
-                pygame.draw.rect(display, (255, 255, 0), (platform.x, platform.y, platform.width, platform.height))
-                if self.rect.colliderect(platform):
-                    self.released = False
-                    self.power = 0
-                    self.collided = True
-                    break
+        # Update rectangle position for collision testing
+        test_rect = self.rect.copy()
+        test_rect.x = new_x - self.radius
+        test_rect.y = new_y - self.radius
 
-            if not self.collided:
-                self.x += coors[0]
-                self.y += coors[1]
-            else:
-                self.collided = False
+        # Check for collisions
+        collision_found = False
+        for platform in platforms:
+            pygame.draw.rect(display, (255, 255, 0), (platform.x, platform.y, platform.width, platform.height))
+
+            if test_rect.colliderect(platform):
+                collision_found = True
+
+                # Calculate collision properties
+                dx = test_rect.centerx - platform.centerx
+                dy = test_rect.centery - platform.centery
+                width = (test_rect.width + platform.width) / 2
+                height = (test_rect.height + platform.height) / 2
+                overlap_x = width - abs(dx)
+                overlap_y = height - abs(dy)
+
+                # Determine collision side (smallest overlap)
+                if overlap_x > overlap_y:
+                    if dy > 0:
+                        self.collision_direction = 'top'
+                        new_y = platform.bottom + self.radius
+                    else:
+                        self.collision_direction = 'bottom'
+                        new_y = platform.top - self.radius
+                else:
+                    if dx > 0:
+                        self.collision_direction = 'left'
+                        new_x = platform.right + self.radius
+                    else:
+                        self.collision_direction = 'right'
+                        new_x = platform.left - self.radius
+
+                print(f"Collision detected: {self.collision_direction}")
+
+                # Reduce power after collision
+                self.power *= 0.8
+                break
+
+        # Update positions
+        self.x = new_x
+        self.y = new_y
+        self.rect.x = self.x - self.radius
+        self.rect.y = self.y - self.radius
+
+        # Update collision state
+        self.collided = collision_found
 
     def get_distance(self, mouse_pos, pos):
         y = (mouse_pos[1] - pos[1]) ** 2
@@ -83,7 +137,7 @@ class Player:
         y = distance * math.sin(angle)
         x = distance * math.cos(angle)
 
-        return x, y
+        return [x, y]
 
     def draw_line(self, display, coor):
         pygame.draw.line(display, (255, 0, 0), (self.x, self.y), (self.x - coor[0], self.y - coor[1]), 3)
